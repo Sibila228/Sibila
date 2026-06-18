@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:13.3
+    container_name: postgres-courseapp
+    environment:
+      POSTGRES_DB: "courseapp"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  keydb:
+    image: "eqalpha/keydb:x86_64_v5.3.3"
+    container_name: keydb-courseapp
+    command: "keydb-server /etc/keydb/redis.conf --server-threads 2"
+    ports:
+      - "6379:6379"
+    volumes:
+      - keydata:/data
+    restart: unless-stopped
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    container_name: rabbitmq-courseapp
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitdata:/var/lib/rabbitmq
+    restart: unless-stopped
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/courseapp"
+      REDIS_HOST: "keydb"
+      REDIS_PORT: "6379"
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: "guest"
+      RABBITMQ_PASSWORD: "guest"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - keydb
+      - rabbitmq
+    restart: unless-stopped
+
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    environment:
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: "guest"
+      RABBITMQ_PASSWORD: "guest"
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local
+  keydata:
+    driver: local
+  rabbitdata:
+    driver: local
