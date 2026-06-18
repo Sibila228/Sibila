@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -6,6 +7,8 @@ from sqlalchemy.orm import Session
 from app import crud
 from app.database import Base, engine, get_db
 from app.schemas import UserCreate, UserOut, UserUpdate
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 Base.metadata.create_all(bind=engine)
 
